@@ -137,7 +137,7 @@ class ABCCART:
     def driver_setting(self):
         chrome_options = Options()
         chrome_options.add_argument("User-Agent=Mozilla/5.0 (iPhone; CPU iPhone OS 12_2 like Mac OS X) ApplewebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148APP_IOS_F")
-        chrome_options.add_argument("headless")
+        # chrome_options.add_argument("headless")
         chrome_options.add_argument('log-level=3')
         chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
         driver = webdriver.Chrome(options=chrome_options)
@@ -220,11 +220,16 @@ class ABCCART:
         self.naver_pay(urls, product_code, header, data)
         # "https://grandstage.a-rt.com/order/complete?orderNo=2024040844145"
 
-        while True:
-            if "complete" in self.driver.current_url:
-                break
-            else:
-                pass
+        for i in range(5):
+            try:
+                if "complete" in self.driver.current_url:
+                    sys.stdout.flush()
+                    sys.stdout.write(f"\r구매 완료\n")
+                    break
+                else:
+                    pass
+            except:
+                time.sleep(1)
         self.driver.close()
         self.driver.quit()
 
@@ -236,14 +241,17 @@ class ABCCART:
                 break
         main_handle = self.driver.current_window_handle
         self.driver.switch_to.window(self.driver.window_handles[-1])
+        # time.sleep(1000)
         self.wait_for_second('XPATH', '//label[@for="card"]')
+        action = ActionChains(self.driver)
+        action.move_to_element(self.driver.find_element(By.CLASS_NAME, 'point_h')).perform()
         self.driver.find_element(By.XPATH, '//label[@for="card"]').click()
-        # self.wait_for_second('XPATH', '//select[@for="f_s2"]')
         try:
             self.driver.find_element(By.ID, 'f_s2').click()
             self.driver.find_element(By.XPATH, '//option[@value="03"]').click()
         except:
             pass
+        action.move_to_element(self.driver.find_element(By.CLASS_NAME, 'footer')).perform()
         self.driver.find_element(By.CLASS_NAME, 'button_bottom').click()
         while True:
             if "authentication" in self.driver.current_url:
@@ -254,13 +262,14 @@ class ABCCART:
 
         sys.stdout.write(f"\r결제 OCR 진행\n")
         sys.stdout.flush()
-        self.driver.save_screenshot('screenshot.png')
-        self.pay_key_orc(urls, product_code, header, data)
+        imgname = str(time.time_ns()).split(".")[0]
+        self.driver.save_screenshot(f'{imgname}.png')
+        self.pay_key_orc(urls, product_code, header, data, imgname)
         self.driver.switch_to.window(main_handle)
 
-    def pay_key_orc(self, urls, product_code, header, data):
+    def pay_key_orc(self, urls, product_code, header, data, imgname):
         pytesseract.pytesseract.tesseract_cmd = r'_internal\Tesseract\tesseract.exe'
-        image = cv2.imread('screenshot.png')
+        image = cv2.imread(f'{imgname}.png')
 
         height, width = image.shape[:2]
         midpoint = height // 2
@@ -275,7 +284,7 @@ class ABCCART:
         invert = 255 - thresh
         custom_config = r'--oem 3 --psm 6'
         text_data = pytesseract.image_to_data(invert, config=custom_config, lang='eng+kor', output_type=pytesseract.Output.DICT)
-        screenshot_image = Image.open('screenshot.png')
+        screenshot_image = Image.open(f'{imgname}.png')
         screenshot_size = screenshot_image.size
         viewport_size = self.driver.execute_script("return [window.innerWidth, window.innerHeight];")
         scale = screenshot_size[0] / viewport_size[0]
@@ -321,7 +330,7 @@ class ABCCART:
             sys.stdout.flush()
             num = num+1
             if stock>0:
-                # print(json.dumps(req.json(), ensure_ascii=False, indent=4))
+                print(json.dumps(req.json(), ensure_ascii=False, indent=4))
                 break
             else:
                 time.sleep(0.2)
@@ -371,7 +380,7 @@ class ABCCART:
             sys.stdout.flush()
 
         except Exception as E:
-            sys.stdout.write(f"\r결제중 에러 발생\n"+E)
+            sys.stdout.write(f"\r결제중 에러 발생\n"+str(E))
             sys.stdout.flush()
             self.driver.close()
             self.driver.quit()
