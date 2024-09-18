@@ -169,21 +169,25 @@ class ABCCART:
         self.driver.delete_all_cookies()
         for i in cookie:
             self.driver.add_cookie(i)
-        sys.stdout.write(f"\r네이버페이 파워적립 활성화\n")
-        sys.stdout.flush()
-        self.driver.get('https://ad.search.naver.com/search.naver?where=ad&query=ABC%EB%A7%88%ED%8A%B8&bucketTest=AD-PWL-SITURL&bucket=1&x=0&y=0')
-        self.driver.find_element(By.CLASS_NAME, "tit_wrap").click()
 
-        while True:
-            if len(self.driver.window_handles) != 1:
-                self.popup_close()
-                break
-
+        self.driver.get('https://m.grandstage.a-rt.com/')
+        try:
+            self.driver.find_element(By.ID, "nextChangePswdBtn").click()
+        except:
+            pass
         sys.stdout.write(f"\r결제창 진입\n")
         sys.stdout.flush()
         self.driver.get(cart_url)
         action = ActionChains(self.driver)
+        try:
+            self.driver.find_element(By.ID, "nextChangePswdBtn").click()
+        except:
+            pass
         self.wait_for_second('XPATH', '//label[@for="applyAllpoint"]')
+        try:
+            self.driver.find_element(By.ID, "nextChangePswdBtn").click()
+        except:
+            pass
         while True:
             try:
                 action.move_to_element(self.driver.find_element(By.ID, 'giftCardCertNum')).perform()
@@ -219,17 +223,14 @@ class ABCCART:
         sys.stdout.flush()
         self.naver_pay(urls, product_code, header, data)
         # "https://grandstage.a-rt.com/order/complete?orderNo=2024040844145"
-
-        for i in range(5):
-            try:
-                if "complete" in self.driver.current_url:
-                    sys.stdout.flush()
-                    sys.stdout.write(f"\r구매 완료\n")
-                    break
-                else:
-                    pass
-            except:
-                time.sleep(1)
+        while True:
+            if "complete" in self.driver.current_url:
+                sys.stdout.flush()
+                sys.stdout.write(f"\r구매 완료\n")
+                time.sleep(10)
+                break
+            else:
+                pass
         self.driver.close()
         self.driver.quit()
 
